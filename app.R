@@ -1,7 +1,9 @@
-libs = c('leaflet','tidyverse','shinycssloaders','shiny','shinyWidgets','shinydashboard','shinydashboardPlus','DT','plotly','scales','shinyjs')
+libs = c('leaflet','tidyverse','shinycssloaders','shiny','shinyWidgets',
+         'shinydashboard','shinydashboardPlus','DT','plotly','scales','shinyjs')
 lapply(libs, require, character.only = TRUE)
 
 options(shiny.sanitize.errors = FALSE)
+
 load('data.RData')
 
 countries = iconList(
@@ -58,7 +60,6 @@ ui = dashboardPage(
   )
 )
 
-# available plot types for selected actions
 maptype_both = sort(c('Events', 'Casualties'))
 maptype_pa = sort(c('Events', 'Casualties','Rockets','Incendiary Balloons','Riots'))
 maptype_il = sort(c('Events', 'Casualties', 'Detentions'))
@@ -70,7 +71,6 @@ server = function(input, output, session) {
     reset("form")
   })
   
-  # update graph choice based on selected actions
   observeEvent(input$datatype,{
     
     if(input$datatype=='Both'){
@@ -86,7 +86,6 @@ server = function(input, output, session) {
                       selected='Events')
   })
   
-  # this is to update color_by option for main line graphs
   observeEvent(
     {
       input$tab
@@ -113,20 +112,12 @@ server = function(input, output, session) {
                       selected='None')
   })
   
-  
-  # this is to update the covariate plot options
   observeEvent(
     {
       input$datatype
       input$graphType
     },{
-    #req(input$tab=="lines")
-    
-    "
-    Consumer Price Index, Unemployment, Trade Balance, Home Demolitions by Israel, Rainfall, 
-    Temperature, Stock Market Index, Israel-Gaza Crossing (People), Israel-Gaza Crossing (Goods)
-    "
-    
+      
     updated_choices=NULL
     
     if(input$datatype!='Both'){
@@ -155,9 +146,7 @@ server = function(input, output, session) {
                       selected='None')
   })
   
-  # update what data to be used for the map/line graph
   d = reactive({
-    #req(input$datatype)
     switch(input$datatype,
            "Palestinian Actions" = pa,
            "Israeli Actions" = il,
@@ -169,7 +158,6 @@ server = function(input, output, session) {
     req(input$datatype!='Both')
     selectInput('p2','Add Covariate Graph',choices=NULL)
   })
-  
   
   # p3 is the color by option, only applicable when type is either casualties or events
   output$p3 = renderUI({
@@ -185,21 +173,14 @@ server = function(input, output, session) {
     req(input$datatype)
     if (input$tab == "Lines") {
       dyn_ui = list(
-        selectInput('graphType','Graph Type',choices=sort(c('Annually','Monthly','Quarterly','Weekly')))#,
-        #selectInput('shade','Choice',choices=c('hamas_fatah_talks_ongoing','operation_ongoing'))
+        selectInput('graphType','Graph Type',choices=sort(c('Annually','Monthly','Quarterly','Weekly')))
       )
     } 
     if (input$tab == "Maps") {
       dyn_ui = list()
     } 
-    # if (input$tab == "Data") {
-    #   dyn_ui = list(
-    #     downloadButton('download','Get Data')
-    #   )
-    # } 
     return(dyn_ui)
   })
-  
   
   output$visualtype = renderUI({
     selectInput('maptype','Visual Type',choices=NULL,selected=NULL)
@@ -220,8 +201,6 @@ server = function(input, output, session) {
                     `deselect-all-text` = "None",
                     `select-all-text` = "All"
                   )),
-      #selectInput('maptype','Visual Type',choices=NULL,selected=NULL),
-      # riot
       conditionalPanel(
         condition="input.maptype=='Riots'",
         pickerInput('riot.sub','Riot Subcategories',
@@ -328,7 +307,6 @@ server = function(input, output, session) {
                            Secondary.Type.Violence.2 %in% input$primary.violence)
       }
       
-      
       if(input$datatype=='Palestinian Actions'){
         
         req(length(input$perpetrator.origin)>0)
@@ -347,9 +325,7 @@ server = function(input, output, session) {
       }
     }
     d
-    
   })
-  
   
   # get the boundaries of map to display the actions in text (on bottom)
   vertab = reactive({
@@ -470,7 +446,6 @@ server = function(input, output, session) {
         p("Note: List contains up to 100 observations from selected geographic area.")
       )
     })
-  #})
     
     # main line plot
     myplot = reactive({
@@ -548,14 +523,11 @@ server = function(input, output, session) {
             }
             else if(input$graphType=='Weekly'){
               d= d %>% group_by(!!sym(cV),Year,Week) %>% summarise(n=sum(Casualties,na.rm=T)) %>% arrange(Year,Week) %>% mutate(X=paste0(Year,'_',Week))
-              #d= d %>% mutate(Xn = 1:n())
             }
           }
         }
         else if(input$casualtype=='Killed') {
-          #d = d %>% select(Year,MonthNum,Quarter,Week,Killed) %>% distinct()
-          #print(d)
-          
+
           if(cV=='None'){
             if(input$graphType=='Annually'){
               d = d %>% group_by(Year) %>% summarise(n=sum(Killed,na.rm=T)) %>% mutate(X=Year)
@@ -585,8 +557,6 @@ server = function(input, output, session) {
           }
         }
         else if(input$casualtype=='Injured') {
-          #d = d %>% select(Year,MonthNum,Quarter,Week,Injured) %>% distinct()
-          #print(d)
           
           if(cV=='None'){
             if(input$graphType=='Annually'){
@@ -619,10 +589,7 @@ server = function(input, output, session) {
         
         
       } else if (input$maptype=='Events'){
-        #d = d %>% select(Year,MonthNum,Quarter,Week) %>% distinct()
-        #print(d)
-        # d = cm; colorV = 'datatype
-        
+
         if(cV=='None'){
           if(input$graphType=='Annually'){
             d = d %>% group_by(Year) %>% summarise(n=n()) %>% mutate(X=Year)
@@ -652,15 +619,12 @@ server = function(input, output, session) {
           else if(input$graphType=='Weekly'){
             d= d %>% group_by(!!sym(cV),Year,Week) %>% summarise(n=n()) %>% arrange(Year,Week) %>% mutate(X=paste0(Year,'_',Week))
           }
-          # d = pa;cV='Type.Violence'
         }
         
       }
       
       else if (input$maptype=='Detentions' & input$datatype=='Israeli Actions') {
-        #d = d %>% select(Year,MonthNum,Quarter,Week,Detained.Arrested) %>% distinct()
-        #print(d)
-        
+
         if(cV=='None'){
           if(input$graphType=='Annually'){
             d = d %>% group_by(Year) %>% summarise(n=sum(Detained.Arrested,na.rm=T)) %>% mutate(X=Year)
@@ -723,8 +687,7 @@ server = function(input, output, session) {
       }
       
       else if(input$maptype=='Incendiary Balloons' & input$datatype=='Palestinian Actions') {
-        #d = d %>% select(Year,MonthNum,Quarter,Week,Balloon.Number) %>% distinct()
-        #print(d)
+
         if(cV=='None'){
           if(input$graphType=='Annually'){
             d = d %>% group_by(Year) %>% summarise(n=sum(Balloon.Number,na.rm=T)) %>% mutate(X=Year)
@@ -810,15 +773,7 @@ server = function(input, output, session) {
         
       }
       
-      
-      
-      p = p +
-        ylab('Frequency') +
-        xlab('Time') +
-        theme_classic()
-      
-      
-      
+      p = p + ylab('Frequency') + xlab('Time') + theme_classic()
       
       if(input$graphType=='Annually'){
         p = p + scale_x_continuous(breaks = c(2008:2020)) 
@@ -830,12 +785,10 @@ server = function(input, output, session) {
         p = p + scale_x_discrete(breaks = paste0(c(2008:2020),'_',1))
       }
       else if(input$graphType=='Weekly'){
-        #p = p + geom_vline(xintercept=ev,color='#CC79A7',alpha=0.5,size=1)
         p = p + scale_x_discrete(breaks = paste0(c(2008:2020),'_',1))
       }
       p = p + scale_y_continuous(breaks = function(x) unique(floor(pretty(seq(0, (max(x) + 1) * 1.1)))))
     })
-    
     
     output$myplot = renderPlotly({
       req(myplot())
@@ -843,7 +796,6 @@ server = function(input, output, session) {
       ggplotly(p=p) %>% config(displayModeBar = F)
       
     })
-    
     
     # covariate plot
     output$myplot1 = renderPlotly({
@@ -855,9 +807,7 @@ server = function(input, output, session) {
       req(input$p2!='None')
       
       d = dataPlot() %>% filter(Add==0)
-      
-      #d = pa
-      
+
       labtab = tibble(
         cov_type=c('Consumer Price Index','Unemployment',
                    'Trade Balance','Exchange Rate','Home Demolitions by Israel','Stock Market Index',
@@ -871,7 +821,6 @@ server = function(input, output, session) {
                   'Ongoing = 1','Ongoing = 1','State Visit Ongoing = 1','UNSC or UNGA Takes Vote on Israel/Palestine = 1','Number of Knesset Members in Ruling Coalition'
                   )
       )
-      
       
       if(input$datatype=='Palestinian Actions'){
         if(input$graphType=='Annually'){
@@ -921,7 +870,6 @@ server = function(input, output, session) {
             d = d %>% mutate(Goods = Total.Imports.Gaza.Israel/Total.Exports.Gaza.Israel)
             d$Goods[is.infinite(d$Goods)]=NA
             d = d %>% group_by(Year,MonthNum) %>% summarise(Y=mean(Goods,na.rm=T)) %>% mutate(X=Year)
-            #d = d %>% group_by(Year,MonthNum) %>% summarise(Y=mean(Total.Imports.Gaza.Israel/Total.Exports.Gaza.Israel,na.rm=T)) %>% mutate(X=paste0(Year,'_',MonthNum))
           }
         }
         else if(input$graphType=='Quarterly'){
@@ -1082,9 +1030,7 @@ server = function(input, output, session) {
             }
           }
       }
-      #d = pa %>% group_by(Year) %>% summarise(n=sum(Rocket.Number,na.rm=T)) %>% mutate(X=Year)
 
-      #if(input$graphType!='Annually'){d = d %>% ungroup() %>% mutate(X=factor(X,levels=d$X))}
       if(input$graphType!='Annually'){d = d %>% ungroup() %>% mutate(X=factor(X,levels=unique(d$X)))}
       if('Z' %in% names(d)){
         d %>% 
@@ -1115,9 +1061,7 @@ server = function(input, output, session) {
       else if(input$graphType=='Weekly'){
         p = p + scale_x_discrete(breaks = paste0(c(2008:2020),'_',1))
       }
-      #p = p + scale_y_continuous(breaks = function(x) unique(floor(pretty(seq(0, (max(x) + 1) * 1.1)))))
       p = p + scale_y_continuous(breaks = pretty_breaks())
-      
       
       ggplotly(p=p) %>% config(displayModeBar = F)
       
